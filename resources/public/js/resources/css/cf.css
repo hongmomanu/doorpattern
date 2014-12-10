@@ -1,0 +1,55 @@
+.cf-header {
+    background-color: #252F49;
+    border-bottom: 1px solid #16191D;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 10px;
+    text-align: center;
+    text-shadow: 0 1px 0 #16191D;
+    
+}
+
+.cf-helpwindow {
+    background-color: #FFFFFF;
+    padding: 5px;
+}
+
+.cf-helpwindow div.cascade {
+    padding: 0 0 0 5px;
+}
+
+.cf-helpwindow h2 {
+    margin: 2px 0 0 0;
+}
+.navigation-grid .x-grid-rowbody {
+    margin: 5px 20px 10px 25px !important;
+    color: #555;
+    font-size: 11px;
+}
+.navitem-div {
+
+    line-height:60px;
+    text-align: center;
+    height: 60px;
+}
+ #loading{
+        height:auto;
+        position:absolute;
+        left:45%;
+        top:40%;
+        padding:2px;
+        z-index:20001;
+}
+ #loading a {
+        color:#225588;
+}
+ #loading .loading-indicator{
+        background:white;
+        color:#444;
+        font:bold 13px Helvetica, Arial, sans-serif;
+        height:auto;
+        margin:0;
+        padding:10px;
+ }
+.x-tree-icon { display: none !important; }
