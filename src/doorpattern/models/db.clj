@@ -131,13 +131,13 @@
 (defn updatespacethree [db tablename  mainkey data]
   (println tablename  mainkey data)
   (with-db db
-    (exec-raw [(str "update \"" tablename  "\"  set flag=2 ,workid=?  where " mainkey "=? ") data])
+    (exec-raw [(str "update \"" tablename  "\"  set flag=3 ,workid=?  where " mainkey "=? ") data])
     )
   )
 
 (defn updatespacethreeorcl [db tablename  mainkey data]
   (with-db db
-    (exec-raw [(str "update " tablename  "  set flag=2 ,workid=?  where " mainkey "=? ") data])
+    (exec-raw [(str "update " tablename  "  set flag=3 ,workid=?  where " mainkey "=? ") data])
     )
   )
 

@@ -174,7 +174,7 @@
           (db/updatespaceoneorcl [dbspace (first proptable)  (first mainkey) [(get item (keyword (first mainkey)))]]))
           (let
             [rids (map #(get % (keyword (last mainkey))) filterdata)
-             ridstr (clojure.string/join ", " rids)
+             ridstr (clojure.string/join "," rids)
              ]
             (if (= (first databsetype) "0") (db/updatebusinessone dbbusiness (last proptable)  (last mainkey) ridstr [ (:uid item)])
               (db/updatebusinessoneorcl dbbusiness (last proptable)  (last mainkey) ridstr [ (:uid item)])
@@ -185,7 +185,7 @@
       2 (if (= (first databsetype) "0") (db/updatespacetwo dbspace (first proptable)  (first mainkey) [(get item (keyword (first mainkey)))])
           (db/updatespacetwoorcl dbspace (first proptable)  (first mainkey) [(get item (keyword (first mainkey)))]))
       3 (if (= (first databsetype) "0") (db/updatespacethree dbspace (first proptable)  (first mainkey) [(:mapguid (first filterdata))(get item (keyword (first mainkey)))])
-          (db/updatespacethreeorcl dbspace (first proptable)  (first mainkey) [(:workid item) (get item (keyword (first mainkey)))]))
+          (db/updatespacethreeorcl dbspace (first proptable)  (first mainkey) [(:mapguid (first filterdata)) (get item (keyword (first mainkey)))]))
       (if (= (first databsetype) "0") (db/updatespacezero dbspace (first proptable)  (first mainkey) [(get item (keyword (first mainkey)))])
         (db/updatespacezeroorcl dbspace (first proptable)  (first mainkey) [(get item (keyword (first mainkey)))]))
 
@@ -246,12 +246,12 @@
 
 (defn splitetail [  databsetype sql mainkey spacekey businesskey dbspace dbbusiness proptable issplit]
 
-  (if (first issplit)  (dorun (pmap #(makePatterArr(first databsetype)  (:doorplate %) (get %  (keyword (first mainkey))) spacekey dbspace (first proptable) (first mainkey))
+  (if (first issplit)  (dorun (map #(makePatterArr(first databsetype)  (:doorplate %) (get %  (keyword (first mainkey))) spacekey dbspace (first proptable) (first mainkey))
                                    (if(= (first databsetype) "0")(db/getdoorplatespace dbspace (first proptable) (first sql) (first mainkey))
                                      (db/getdoorplatebusiness dbspace (first proptable) (first sql) (first mainkey))
                                      )))nil)
 
-  (if (last issplit)  (dorun (pmap #(do (println %) (makePatterArr (last databsetype)  (:doorplate %) (get %  (keyword (last mainkey))) businesskey dbbusiness (last proptable) (last mainkey)) )
+  (if (last issplit)  (dorun (map #(do (println %) (makePatterArr (last databsetype)  (:doorplate %) (get %  (keyword (last mainkey))) businesskey dbbusiness (last proptable) (last mainkey)) )
                                   (if(= (last databsetype) "0")(db/getdoorplatespace dbbusiness (last proptable) (last sql) (last mainkey))
                                     (db/getdoorplatebusiness dbbusiness (last proptable) (last sql) (last mainkey)))))nil )
 

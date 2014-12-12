@@ -56,7 +56,7 @@ Ext.define('CF.view.config.doorPanel' ,{
                                     name: 'password'
                                 },{
                                     fieldLabel: '数据库名',
-                                    value:'gnc',
+                                    value:'xsdata20130719',
                                     anchor:'100%',
                                     name: 'dbname'
                                 }, {
@@ -158,7 +158,7 @@ Ext.define('CF.view.config.doorPanel' ,{
                                     name: 'host'
                                 },{
                                     fieldLabel: '用户名',
-                                    value:'CIVILAFFAIRS_MZ_WL',
+                                    value:'CIVILAFFAIRS_MZ',
                                     anchor:'100%',
                                     name: 'user'
                                 },{
