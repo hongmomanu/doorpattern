@@ -16,7 +16,7 @@
                  [postgresql/postgresql "9.1-901.jdbc4"]
 
                  [korma "0.3.1"]
-
+                 [clj-time "0.8.0"]
                  [markdown-clj "0.9.58"
                   :exclusions [com.keminglabs/cljx]]
                  [environ "1.0.0"]
@@ -64,5 +64,5 @@
                         [pjstadig/humane-test-output "0.6.0"]]
          :injections [(require 'pjstadig.humane-test-output)
                       (pjstadig.humane-test-output/activate!)]
-         :env {:dev true}}}
+         :env {:dev false}}}
   :min-lein-version "2.0.0")

@@ -192,7 +192,7 @@ Ext.define('CF.controller.Config', {
         };
         var failFunc = function (form, action) {
             //alert(Ext.JSON.decode(action.response.responseText).msg);
-            Ext.Msg.alert("提示信息", "服务失败");
+            Ext.Msg.alert("提示信息", Ext.JSON.decode(action.response.responseText).msg);
 
         };
         this.formSubmit(button, {}, 'patterndoor', successFunc, failFunc);
