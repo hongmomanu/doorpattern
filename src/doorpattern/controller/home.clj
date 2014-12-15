@@ -49,7 +49,7 @@
 
 
 (defn patterndoornum [address]
-  (re-seq #"[0-9A-Z一二三四五六七八九十东南西北甲乙丙丁－.、,()；;-]+[号室]" address)
+  (re-seq #"[0-9A-Z一二三四五六七八九十东南西北甲乙丙丁－.、,；;-]+[号室]" address)  ;()
   )
 (defn patternmainroad [address]
   (re-seq #"[^村街道镇区]+(路|大道|街|街道)"  address)
@@ -87,20 +87,21 @@
   (println "1111" keyvalue doorplate (= dbtype "1"))
 
   (let [
+          doorplate  (clojure.string/replace (clojure.string/replace doorplate  #"\(" "")  #"\)" "")
           doornum (patterndoornum doorplate)
-          mainroad (patternmainroad doorplate)
+          mainroad  (patternmainroad doorplate)
           secroad (patternsecroad doorplate)
           village   (patternvillage doorplate)
           unit    (patternunit doorplate)
           building  (patterbuilding doorplate)
-          doornumstr1  (first doornum)
-          doornumstr2  (second doornum)
+          doornumstr1  (first doornum)  ;(clojure.string/replace   (first doornum)  #"\(" "")
+          doornumstr2   (second doornum) ;(clojure.string/replace    #"\)" "")
           mainroadstr  (first (first mainroad))
           secroadstr   (first (first secroad))
           villagestr  (first (first village))
           unitstr  (first unit)
           buildingstr  (first (first building))
-          test (println "test be")
+          test (println "test be" doornumstr1 doornumstr2)
           jmdstr (replaceall doorplate [doornumstr1 doornumstr2  mainroadstr
                                           secroadstr  villagestr  unitstr   buildingstr
                                           ])
@@ -145,28 +146,51 @@
     )
 
   )
+(defn makesearchsqlstr [item]
+  ;;" and (主要道路=? or 村社区=? or 居民点=? or 次要道路=?)"
+  (let [
+         mainroad (if (= (:主要道路 item) "") nil (:主要道路 item))
+         village (if (= (:村社区 item) "") nil (:村社区 item))
+         jmd (if (= (:居民点 item) "") nil (:居民点 item))
+         secroad (if (= (:次要道路 item) "") nil (:次要道路 item))
+         arr    [mainroad village jmd secroad]
+
+         arrfilter (filter (fn [x]
+                             (not (nil? x))) arr)
+         ]
+
+    [(str " and (\"主要道路\"" (if (nil? mainroad) "is null" (str "='" mainroad "'"))  " or \"村社区\"" (if (nil? village) "is null" (str "='" village "'")) ")
+     and (\"居民点\"" (if (nil? jmd) "is null" (str "='" jmd "'")) " or \"次要道路\""
+       (if (nil? secroad) "is null" (str "='" secroad "'")) ")" )
+     arrfilter
+     ]
+    )
+
+  )
 (defn makeflag [similardata filterdata]
   (if (= (count similardata)0) 0 (if (= (count filterdata) 0) 2 (if (= (count filterdata) 1) 3 1)) )
   )
 (defn patterbeginitem [item databsetype sql mainkey spacekey businesskey dbspace dbbusiness proptable]
-  (println item)
+  ;(println item)
   (let [
          customsql   (makesearchsql item)
 
-         test (println customsql)
+         ;test (println customsql)
          similardata (if(= (last databsetype) "0")(db/getdoorplatebusinessdetail customsql dbbusiness (last proptable) (last sql) (last mainkey))
                        (db/getdoorplatebusinessdetailorcl customsql dbbusiness (last proptable) (last sql) (last mainkey))
                        )
 
          filterdata (filter (fn [x]
-                              (and (=(:门牌1 x) (:门牌1 item)) (=(:门牌2 x) (:门牌2 item)))) similardata)
+                              (do
+
+                              (or (and (not (nil?(:楼栋号 item))) (= (:楼栋号 x) (:楼栋号 item))) (and (=(:门牌1 x) (:门牌1 item)) (=(:门牌2 x) (:门牌2 item)))))) similardata)
          flag (makeflag similardata filterdata)
          statusvalue (get @status-mem spacekey)
          progress (+ (/ 1 (int (:totalnum statusvalue))) (:value statusvalue) )
          ]
 
     (swap! status-mem assoc spacekey (conj statusvalue {:value progress}))
-    (println flag filterdata)
+    (println flag ) ;filterdata
     ;(println (makeflag similardata filterdata))
 
     (condp = flag
@@ -195,8 +219,52 @@
   )
   )
 
+
+
+
+
+
 (defn patterbegin [databsetype sql mainkey spacekey businesskey dbspace dbbusiness proptable]
-  (let
+
+  (println "pattern begin")
+  (try (let [
+
+              sql1       (if (= (first databsetype) "0") (str "select " (first mainkey) ", \"主要道路\",\"村社区\",\"居民点\",
+    \"次要道路\",\"楼栋号\",\"单元号\",\"门牌1\",\"门牌2\",uid from  \"" (first proptable)  "\" " (first sql) )
+                          (str "select " (first mainkey) " as \"" (first mainkey) "\", \"主要道路\",\"村社区\",\"居民点\",
+    \"次要道路\",\"楼栋号\",\"单元号\",\"门牌1\",\"门牌2\",uid as \"uid\" from  " (first proptable) " " (first sql) ))
+              fetch-size 1000 ;; or whatever's appropriate  1000
+
+              cnxn       (doto (j/get-connection dbspace)
+                           (.setAutoCommit false))
+              stmt       (j/prepare-statement cnxn sql1 :fetch-size fetch-size :concurrency :read-only)
+
+              ;results    (rest (j/query cnxn [stmt] :as-arrays? true :row-fn #(println "nonono"  %)))
+              ;results    (rest (j/query cnxn [stmt] ))
+              keyid    (keyword mainkey)
+              doresults (jdeprecated/with-query-results results [stmt] ;; binds the results to `results`
+                          (doseq [row results]
+                            (patterbeginitem row databsetype sql mainkey spacekey businesskey dbspace dbbusiness proptable )
+                            ;(println row)
+                            ;(makePatterArr  databsetype  (:doorplate row) (get row  (keyword  mainkey)) key db tablename mainkey)
+                            ;(addindex-func (json/write-str (conj row {:id (get row keyid)})) indexname false)
+                            ))
+
+
+              ]
+
+         ;(dorun (map #(addindex-func (json/write-str (conj % {:id (get % keyid)})) indexname false) results))
+         ;(.commit (get @index-writer indexname))
+         ;(resp/json {:success true}
+
+         ;  )
+
+         )(catch Exception e (println (.getMessage e))))
+
+
+
+
+  #_(let
     [
       spacedata  (if(= (first databsetype) "0")(db/getdoorplatespacedetail dbspace (first proptable) (first sql) (first mainkey))
                    (db/getdoorplatespacedetailorcl dbspace (first proptable) (first sql) (first mainkey))
@@ -243,18 +311,58 @@
 
 
 
+(defn makeindexfromdb [databsetype db tablename  sql mainkey key]
+
+
+  (try (let [
+
+              sql       (if (= databsetype "0") (str "select doorplate ," mainkey " from  \"" tablename "\" " sql)
+                          (str "select doorplate as \"doorplate\" ," mainkey " as \"" mainkey "\" from  " tablename " " sql))
+              fetch-size 1000 ;; or whatever's appropriate  1000
+
+              cnxn       (doto (j/get-connection db)
+                           (.setAutoCommit false))
+              stmt       (j/prepare-statement cnxn sql :fetch-size fetch-size :concurrency :read-only)
+
+              ;results    (rest (j/query cnxn [stmt] :as-arrays? true :row-fn #(println "nonono"  %)))
+              ;results    (rest (j/query cnxn [stmt] ))
+              keyid    (keyword mainkey)
+              doresults (jdeprecated/with-query-results results [stmt] ;; binds the results to `results`
+                          (doseq [row results]
+                            ;(println row)
+                            (makePatterArr  databsetype  (:doorplate row) (get row  (keyword  mainkey)) key db tablename mainkey)
+                            ;(addindex-func (json/write-str (conj row {:id (get row keyid)})) indexname false)
+                            ))
+
+
+              ]
+
+         ;(dorun (map #(addindex-func (json/write-str (conj % {:id (get % keyid)})) indexname false) results))
+         ;(.commit (get @index-writer indexname))
+         ;(resp/json {:success true}
+
+         ;  )
+
+         )(catch Exception e (println (.getMessage e))))
+  )
+
+
 
 (defn splitetail [  databsetype sql mainkey spacekey businesskey dbspace dbbusiness proptable issplit]
 
-  (if (first issplit)  (dorun (map #(makePatterArr(first databsetype)  (:doorplate %) (get %  (keyword (first mainkey))) spacekey dbspace (first proptable) (first mainkey))
+  (println  (if (first issplit) 0 1))
+  (println  (if (= (first issplit) "true") 0 1))
+
+  #_(if (= (first issplit) "true")  (dorun (map #(makePatterArr(first databsetype)  (:doorplate %) (get %  (keyword (first mainkey))) spacekey dbspace (first proptable) (first mainkey))
                                    (if(= (first databsetype) "0")(db/getdoorplatespace dbspace (first proptable) (first sql) (first mainkey))
                                      (db/getdoorplatebusiness dbspace (first proptable) (first sql) (first mainkey))
                                      )))nil)
+  (if (= (first issplit) "true") (dorun (makeindexfromdb (first databsetype) dbspace (first proptable)  (first sql) (first mainkey) spacekey))nil)
 
-  (if (last issplit)  (dorun (map #(do (println %) (makePatterArr (last databsetype)  (:doorplate %) (get %  (keyword (last mainkey))) businesskey dbbusiness (last proptable) (last mainkey)) )
+  #_(if (= (last issplit) "true")  (dorun (map #(do (println %) (makePatterArr (last databsetype)  (:doorplate %) (get %  (keyword (last mainkey))) businesskey dbbusiness (last proptable) (last mainkey)) )
                                   (if(= (last databsetype) "0")(db/getdoorplatespace dbbusiness (last proptable) (last sql) (last mainkey))
                                     (db/getdoorplatebusiness dbbusiness (last proptable) (last sql) (last mainkey)))))nil )
-
+  (if (= (last issplit) "true")(dorun (makeindexfromdb (last databsetype) dbbusiness (last proptable)  (last sql) (last mainkey) businesskey))nil)
 
 
   (patternaftersplit databsetype sql mainkey spacekey businesskey dbspace dbbusiness proptable)
